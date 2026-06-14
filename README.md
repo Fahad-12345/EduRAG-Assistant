@@ -12,17 +12,34 @@ Users can upload academic PDFs, ask questions, generate summaries, create quizze
 - Upload academic PDF documents
 - Automatic text extraction
 - Vector database indexing
+  
+<img width="1920" height="1014" alt="home" src="https://github.com/user-attachments/assets/21c1cd79-984e-4bcf-8572-69b30ca87203" />
+
 
 ### RAG Question Answering
 - Ask questions directly from uploaded PDFs
 - Context-aware responses
 - Source citation support
 
+<img width="1920" height="1080" alt="ask_question" src="https://github.com/user-attachments/assets/64a2c42c-ea0b-43b3-a8d4-47c254c81d5a" />
+
+<img width="1920" height="1080" alt="answer_question" src="https://github.com/user-attachments/assets/343ddc23-cb72-49b6-b89d-15b917e19153" />
+
+
 ### AI Learning Tools
 - Document Summarization
 - Quiz Generation
 - Key Topic Extraction
 - Explain Simply Mode
+
+  <img width="1920" height="1080" alt="summary" src="https://github.com/user-attachments/assets/6afac300-a5e9-4e00-af04-a5152ee8a7a6" />
+
+  <img width="1920" height="1080" alt="quiz_generation" src="https://github.com/user-attachments/assets/5020f061-bbd2-4543-aa23-402258928dab" />
+
+  <img width="1920" height="1080" alt="key_topics" src="https://github.com/user-attachments/assets/29b40d84-f7e0-4757-bf49-5832773e8cef" />
+
+  <img width="1920" height="1080" alt="explain_simply" src="https://github.com/user-attachments/assets/a737b32b-acb9-4934-b4b3-db59b82f27a9" />
+
 
 ### User Experience
 - Chat history
@@ -32,6 +49,8 @@ Users can upload academic PDFs, ask questions, generate summaries, create quizze
 - Clear chat option
 
 ---
+
+
 
 ## Tech Stack
 
