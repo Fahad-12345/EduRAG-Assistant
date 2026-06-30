@@ -14,7 +14,7 @@ import os
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "https://edurag-assistant-production.up.railway.app"],
+    allow_origins=["http://localhost:5173", "https://edu-rag-assistant.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
