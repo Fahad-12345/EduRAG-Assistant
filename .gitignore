@@ -11,6 +11,8 @@ vector_db/
 
 # Environment
 .env
+backend/.env
+frontend/.env
 
 # Node
 node_modules/

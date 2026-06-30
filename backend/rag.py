@@ -1,16 +1,22 @@
 import os
 
+from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_ollama import ChatOllama, OllamaEmbeddings
+from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
+
+load_dotenv()
 
 VECTOR_DB = "vector_db"
 COLLECTION_NAME = "current_document"
 
 
 def get_embeddings():
-    return OllamaEmbeddings(model="nomic-embed-text")
+    return HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2"
+    )
 
 
 def reset_vector_db():
@@ -79,7 +85,10 @@ Content:
 {doc.page_content}
 """
 
-    llm = ChatOllama(model="gemma2:2b")
+    llm = ChatGroq(
+    api_key=os.getenv("GROQ_API_KEY"),
+    model_name="llama-3.3-70b-versatile"
+    )
 
     prompt = f"""
 You are an AI University Assistant.

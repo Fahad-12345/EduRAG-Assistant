@@ -99,11 +99,11 @@ cd backend
 
 python -m venv venv
 
-venvScriptsactivate
+venv\Scripts\activate
 
 pip install -r requirements.txt
 
-uvicorn appapp --reload
+uvicorn app:app --reload
 ```
 
 ### Frontend
