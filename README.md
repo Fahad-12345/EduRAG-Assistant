@@ -2,6 +2,8 @@
 
 An AI-powered academic document assistant built using Retrieval-Augmented Generation (RAG).
 
+🚀 **Live Demo:** https://edu-rag-assistant.vercel.app/
+
 Users can upload academic PDFs, ask questions, generate summaries, create quizzes, extract key topics, and receive simplified explanations based on document content.
 
 ---
@@ -66,9 +68,11 @@ Users can upload academic PDFs, ask questions, generate summaries, create quizze
 - LangChain
 
 ### AI & RAG
-- Ollama
-- Mistral
+- LangChain
+- Groq API
+- Llama 3.3 70B
 - ChromaDB
+- HuggingFace Embeddings
 - Sentence Transformers
 
 ---
@@ -139,6 +143,21 @@ npm run dev
 - Export to PDF
 - Chat session persistence
 - Cloud deployment
+
+---
+## Deployment
+
+Frontend:
+- Vercel
+
+Backend:
+- Railway
+
+Vector Database:
+- ChromaDB
+
+LLM:
+- Groq Cloud (Llama 3.3 70B)
 
 ---
 
