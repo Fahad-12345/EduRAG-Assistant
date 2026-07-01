@@ -142,8 +142,6 @@ npm run dev
 - n8n workflow automation
 - Export to PDF
 - Chat session persistence
-- Cloud deployment
-
 ---
 ## Deployment
 
