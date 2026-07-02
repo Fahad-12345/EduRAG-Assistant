@@ -163,5 +163,6 @@ LLM:
 
 Fahad Irfan — Full-Stack AI Developer
 
-GitHub: github.com/Fahad-12345
-Portfolio: fahadirfan.vercel.app
+GitHub: https://github.com/Fahad-12345/
+
+Portfolio: https://fahadirfan.vercel.app/
