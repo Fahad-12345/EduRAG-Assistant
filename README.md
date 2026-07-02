@@ -161,8 +161,7 @@ LLM:
 
 ## Author
 
-Fahad Irfan
+Fahad Irfan — Full-Stack AI Developer
 
-Electrical Engineer | AI Developer
-
-LinkedIn https://www.linkedin.com/in/fahad-irfan-83940b162
+GitHub: github.com/Fahad-12345
+Portfolio: fahadirfan.vercel.app
