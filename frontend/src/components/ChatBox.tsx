@@ -78,7 +78,7 @@ const downloadAnswer = (answer: string, index: number) => {
       setLoading(true);
       setQuestion("");
 
-      const response = await API.post<AskResponse>("/ask", {
+      const response = await API.post<AskResponse>("/agent", {
         question: currentQuestion,
       });
 
@@ -260,7 +260,7 @@ const explainDocument = async () => {
       <textarea
         className="question-box"
         value={question}
-        placeholder="Ask anything from your uploaded PDF..."
+        placeholder="Ask a question, or try 'summarize this' or 'quiz me'..."
         onChange={(e) => setQuestion(e.target.value)}
       />
 

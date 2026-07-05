@@ -1,0 +1,195 @@
+# graph.py
+import os
+from typing import TypedDict, List
+from langgraph.graph import StateGraph, END
+from langchain_groq import ChatGroq
+from retrieval import retrieve_context
+
+llm = ChatGroq(
+    api_key=os.getenv("GROQ_API_KEY"),
+    model_name="llama-3.3-70b-versatile"
+)
+
+PROMPTS = {
+    "qa": """You are an AI University Assistant.
+Answer the student's question using only the context below.
+If the answer is not available in the context, say:
+"I could not find this information in the uploaded document."
+
+Context:
+{context}
+
+Question:
+{question}
+
+Answer:""",
+
+    "summary": """Summarize this uploaded document in clear bullet points.
+Keep it useful for a university student.
+
+Context:
+{context}
+
+Answer:""",
+
+    "quiz": """Generate 10 quiz questions from the uploaded document.
+
+Format:
+1. Question
+A) Option A
+B) Option B
+C) Option C
+D) Option D
+Answer: Correct option
+
+Context:
+{context}
+
+Answer:""",
+
+    "topics": """Extract the main key topics covered in the uploaded document.
+
+Format:
+- Topic 1
+- Topic 2
+
+Context:
+{context}
+
+Answer:""",
+
+    "explain": """Explain the uploaded document in simple, easy-to-understand language
+for a university student seeing this topic for the first time.
+
+Context:
+{context}
+
+Answer:""",
+}
+
+
+class GraphState(TypedDict):
+    question: str
+    intent: str
+    context: str
+    docs: List
+    answer: str
+    sources: List[dict]
+
+
+def classify_intent_node(state: GraphState) -> GraphState:
+    """Routes free-text input to the right prompt template.
+    Button-triggered calls will set intent directly and skip this node."""
+    question = state["question"]
+
+    classification_prompt = f"""Classify this request into exactly one category:
+qa, summary, quiz, topics, explain
+
+Request: "{question}"
+
+Reply with only the category word, nothing else."""
+
+    result = llm.invoke(classification_prompt).content.strip().lower()
+
+    valid_intents = {"qa", "summary", "quiz", "topics", "explain"}
+    state["intent"] = result if result in valid_intents else "qa"
+    return state
+
+
+def retrieve_node(state: GraphState) -> GraphState:
+    if state["intent"] == "qa":
+        result = retrieve_context(state["question"], apply_filter=True)
+    else:
+        # summary/quiz/topics/explain: fetch broadly, no relevance filtering
+        result = retrieve_context(state["intent"], k=8, apply_filter=False)
+    state["docs"] = result["docs"]
+    state["context"] = result["context"]
+    return state
+
+def grounding_check(state: GraphState) -> str:
+    """Conditional edge: skip the LLM entirely if retrieval found nothing.
+    This is the hallucination-prevention step."""
+    if not state["docs"] or not state["context"].strip():
+        return "not_found"
+    return "generate"
+
+
+def not_found_node(state: GraphState) -> GraphState:
+    state["answer"] = "I could not find this information in the uploaded document."
+    state["sources"] = []
+    return state
+
+
+def generate_node(state: GraphState) -> GraphState:
+    prompt_template = PROMPTS[state["intent"]]
+    prompt = prompt_template.format(context=state["context"], question=state["question"])
+
+    response = llm.invoke(prompt)
+    answer_text = response.content.strip()
+
+    not_found_phrases = [
+        "i could not find this information in the uploaded document",
+        "could not find this information",
+        "not available in the context",
+    ]
+
+    if any(p in answer_text.lower() for p in not_found_phrases):
+        state["answer"] = answer_text
+        state["sources"] = []
+        return state
+
+    sources = []
+    for doc in state["docs"]:
+        source = doc.metadata.get("source", "Unknown file")
+        page = doc.metadata.get("page", "Unknown page")
+        item = {"file": os.path.basename(source), "page": page + 1 if isinstance(page, int) else page}
+        if item not in sources:
+            sources.append(item)
+
+    state["answer"] = answer_text
+    state["sources"] = sources
+    return state
+def route_entry(state: GraphState) -> str:
+    """If intent is already set (button click), skip classification."""
+    return "retrieve" if state["intent"] else "classify_intent"
+
+# graph.py (continued)
+
+def build_graph():
+    workflow = StateGraph(GraphState)
+
+    workflow.add_node("classify_intent", classify_intent_node)
+    workflow.add_node("retrieve", retrieve_node)
+    workflow.add_node("generate", generate_node)
+    workflow.add_node("not_found", not_found_node)
+
+    workflow.set_conditional_entry_point(
+        route_entry,
+        {"classify_intent": "classify_intent", "retrieve": "retrieve"}
+    )
+    workflow.add_edge("classify_intent", "retrieve")
+    workflow.add_conditional_edges(
+        "retrieve",
+        grounding_check,
+        {"generate": "generate", "not_found": "not_found"}
+    )
+    workflow.add_edge("generate", END)
+    workflow.add_edge("not_found", END)
+
+    return workflow.compile()
+
+agent_graph = build_graph()
+
+
+def run_agent(question: str, intent: str = None):
+    initial_state = {
+        "question": question,
+        "intent": intent or "",
+        "context": "",
+        "docs": [],
+        "answer": "",
+        "sources": [],
+    }
+    result = agent_graph.invoke(initial_state)
+    return {"answer": result["answer"], "sources": result["sources"]}
+    

@@ -1,13 +1,8 @@
 from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
-from rag import (
-    ingest_pdf,
-    ask_question,
-    generate_summary,
-    generate_quiz,
-    generate_topics,
-    explain_simply
-)
+from rag import ingest_pdf
+from graph import run_agent
+
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
@@ -52,22 +47,26 @@ async def upload_pdf(file: UploadFile = File(...)):
 
 @app.post("/ask")
 def ask(request: QuestionRequest):
-    response = ask_question(request.question)
+    return run_agent(request.question, intent="qa")
 
-    return response
 @app.post("/summary")
 def summary():
-    response = generate_summary()
-    return response
+    return run_agent("Summarize the document", intent="summary")
+
 @app.post("/quiz")
 def quiz():
-    response = generate_quiz()
-    return response
+    return run_agent("Generate a quiz", intent="quiz")
+
 @app.post("/topics")
 def topics():
-    response = generate_topics()
-    return response
+    return run_agent("Extract topics", intent="topics")
+
 @app.post("/explain")
 def explain():
-    response = explain_simply()
-    return response
+    return run_agent("Explain simply", intent="explain")
+
+# NEW — genuinely agentic endpoint, no fixed intent, model decides
+@app.post("/agent")
+def agent(request: QuestionRequest):
+    return run_agent(request.question)
+    
