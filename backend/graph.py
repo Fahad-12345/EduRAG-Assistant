@@ -10,6 +10,12 @@ llm = ChatGroq(
     model_name="llama-3.3-70b-versatile"
 )
 
+classifier_llm = ChatGroq(
+    api_key=os.getenv("GROQ_API_KEY"),
+    model_name="llama-3.3-70b-versatile",
+    temperature=0,
+)
+
 PROMPTS = {
     "qa": """You are an AI University Assistant.
 Answer the student's question using only the context below.
@@ -82,14 +88,29 @@ def classify_intent_node(state: GraphState) -> GraphState:
     Button-triggered calls will set intent directly and skip this node."""
     question = state["question"]
 
-    classification_prompt = f"""Classify this request into exactly one category:
-qa, summary, quiz, topics, explain
+    classification_prompt = f"""Classify this request into exactly one category: qa, summary, quiz, topics, explain
+
+Rules:
+- "qa" = the user is asking a specific factual question, even if phrased as "tell me about X" or "what is X" — default to qa unless it's clearly a command.
+- "summary" = ONLY if the user explicitly asks to summarize the document (e.g. "summarize this", "give me a summary").
+- "quiz" = ONLY if the user explicitly asks for a quiz or test questions.
+- "topics" = ONLY if the user explicitly asks for topics or key themes (e.g. "what topics are covered").
+- "explain" = ONLY if the user explicitly asks for a simple/easy explanation of the whole document (e.g. "explain this simply", "explain like I'm new").
+
+Examples:
+"What is Agile development?" -> qa
+"Tell me about risk in software projects" -> qa
+"What is throwaway prototyping?" -> qa
+"Summarize this" -> summary
+"Give me a quiz" -> quiz
+"What are the key topics?" -> topics
+"Explain this simply" -> explain
 
 Request: "{question}"
 
 Reply with only the category word, nothing else."""
 
-    result = llm.invoke(classification_prompt).content.strip().lower()
+    result = classifier_llm.invoke(classification_prompt).content.strip().lower()
 
     valid_intents = {"qa", "summary", "quiz", "topics", "explain"}
     state["intent"] = result if result in valid_intents else "qa"
@@ -153,7 +174,6 @@ def route_entry(state: GraphState) -> str:
     """If intent is already set (button click), skip classification."""
     return "retrieve" if state["intent"] else "classify_intent"
 
-# graph.py (continued)
 
 def build_graph():
     workflow = StateGraph(GraphState)
