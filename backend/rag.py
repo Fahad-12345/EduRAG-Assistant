@@ -7,9 +7,13 @@ from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-load_dotenv()
+# load_dotenv()
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
 
-VECTOR_DB = "vector_db"
+# VECTOR_DB = "vector_db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+VECTOR_DB = os.path.join(BASE_DIR, "vector_db")
 COLLECTION_NAME = "current_document"
 
 
