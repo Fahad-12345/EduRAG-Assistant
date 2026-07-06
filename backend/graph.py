@@ -4,6 +4,7 @@ from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
 from langchain_groq import ChatGroq
 from retrieval import retrieve_context
+from langfuse import observe, get_client
 
 llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
@@ -83,6 +84,7 @@ class GraphState(TypedDict):
     sources: List[dict]
 
 
+@observe(name="classify-intent")
 def classify_intent_node(state: GraphState) -> GraphState:
     """Routes free-text input to the right prompt template.
     Button-triggered calls will set intent directly and skip this node."""
@@ -114,9 +116,15 @@ Reply with only the category word, nothing else."""
 
     valid_intents = {"qa", "summary", "quiz", "topics", "explain"}
     state["intent"] = result if result in valid_intents else "qa"
+
+    get_client().update_current_span(
+        input=question,
+        output=state["intent"],
+    )
+
     return state
 
-
+@observe(name="retrieve-context")
 def retrieve_node(state: GraphState) -> GraphState:
     if state["intent"] == "qa":
         result = retrieve_context(state["question"], apply_filter=True)
@@ -125,6 +133,9 @@ def retrieve_node(state: GraphState) -> GraphState:
         result = retrieve_context(state["intent"], k=8, apply_filter=False)
     state["docs"] = result["docs"]
     state["context"] = result["context"]
+    get_client().update_current_span(
+        metadata={"num_docs_retrieved": len(result["docs"])}
+    )
     return state
 
 def grounding_check(state: GraphState) -> str:
@@ -141,6 +152,7 @@ def not_found_node(state: GraphState) -> GraphState:
     return state
 
 
+@observe(name="generate-answer", as_type="generation")
 def generate_node(state: GraphState) -> GraphState:
     prompt_template = PROMPTS[state["intent"]]
     prompt = prompt_template.format(context=state["context"], question=state["question"])
@@ -169,6 +181,11 @@ def generate_node(state: GraphState) -> GraphState:
 
     state["answer"] = answer_text
     state["sources"] = sources
+    get_client().update_current_span(
+        input=prompt,
+        output=answer_text,
+        metadata={"intent": state["intent"]},
+    )
     return state
 def route_entry(state: GraphState) -> str:
     """If intent is already set (button click), skip classification."""
@@ -200,7 +217,7 @@ def build_graph():
 
 agent_graph = build_graph()
 
-
+@observe(name="edurag-agent-run")
 def run_agent(question: str, intent: str = None):
     initial_state = {
         "question": question,
