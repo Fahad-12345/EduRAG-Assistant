@@ -5,6 +5,8 @@ from graph import run_agent
 
 load_dotenv()
 
+EVAL_USER_ID = "eval-script"
+
 EVAL_SET = [
     {"question": "What is throwaway prototyping?", "expected": "answer", "category": "in-document"},
     {"question": "What are the advantages of evolutionary prototyping?", "expected": "answer", "category": "in-document"},
@@ -46,7 +48,7 @@ def score_result(question: str, answer: str, expected: str) -> dict:
 
 @observe(name="eval-case")
 def run_single_case(question: str, expected: str):
-    response = run_agent(question)
+    response = run_agent(question, user_id=EVAL_USER_ID)
     answer = response["answer"]
     score = score_result(question, answer, expected)
 
