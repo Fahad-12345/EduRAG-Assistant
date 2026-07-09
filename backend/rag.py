@@ -1,20 +1,16 @@
 import os
-
 from dotenv import load_dotenv
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(BASE_DIR, ".env"))
+
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-# load_dotenv()
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-load_dotenv(os.path.join(BASE_DIR, ".env"))
-
-# VECTOR_DB = "vector_db"
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 VECTOR_DB = os.path.join(BASE_DIR, "vector_db")
-COLLECTION_NAME = "current_document"
 
 
 def get_embeddings():
@@ -23,11 +19,15 @@ def get_embeddings():
     )
 
 
-def reset_vector_db():
+def get_collection_name(user_id: str) -> str:
+    return f"user_{user_id}"
+
+
+def reset_vector_db(user_id: str):
     embeddings = get_embeddings()
 
     db = Chroma(
-        collection_name=COLLECTION_NAME,
+        collection_name=get_collection_name(user_id),
         persist_directory=VECTOR_DB,
         embedding_function=embeddings,
     )
@@ -38,8 +38,8 @@ def reset_vector_db():
         db.delete(ids=existing["ids"])
 
 
-def ingest_pdf(file_path):
-    reset_vector_db()
+def ingest_pdf(file_path: str, user_id: str):
+    reset_vector_db(user_id)
 
     loader = PyPDFLoader(file_path)
     documents = loader.load()
@@ -57,7 +57,7 @@ def ingest_pdf(file_path):
         documents=chunks,
         embedding=embeddings,
         persist_directory=VECTOR_DB,
-        collection_name=COLLECTION_NAME,
+        collection_name=get_collection_name(user_id),
     )
 
     return len(chunks)

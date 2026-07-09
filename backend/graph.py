@@ -82,6 +82,7 @@ class GraphState(TypedDict):
     docs: List
     answer: str
     sources: List[dict]
+    user_id: str
 
 
 @observe(name="classify-intent")
@@ -124,19 +125,21 @@ Reply with only the category word, nothing else."""
 
     return state
 
+
 @observe(name="retrieve-context")
 def retrieve_node(state: GraphState) -> GraphState:
     if state["intent"] == "qa":
-        result = retrieve_context(state["question"], apply_filter=True)
+        result = retrieve_context(state["question"], user_id=state["user_id"], apply_filter=True)
     else:
         # summary/quiz/topics/explain: fetch broadly, no relevance filtering
-        result = retrieve_context(state["intent"], k=8, apply_filter=False)
+        result = retrieve_context(state["intent"], user_id=state["user_id"], k=8, apply_filter=False)
     state["docs"] = result["docs"]
     state["context"] = result["context"]
     get_client().update_current_span(
         metadata={"num_docs_retrieved": len(result["docs"])}
     )
     return state
+
 
 def grounding_check(state: GraphState) -> str:
     """Conditional edge: skip the LLM entirely if retrieval found nothing.
@@ -187,6 +190,8 @@ def generate_node(state: GraphState) -> GraphState:
         metadata={"intent": state["intent"]},
     )
     return state
+
+
 def route_entry(state: GraphState) -> str:
     """If intent is already set (button click), skip classification."""
     return "retrieve" if state["intent"] else "classify_intent"
@@ -215,10 +220,12 @@ def build_graph():
 
     return workflow.compile()
 
+
 agent_graph = build_graph()
 
+
 @observe(name="edurag-agent-run")
-def run_agent(question: str, intent: str = None):
+def run_agent(question: str, user_id: str, intent: str = None):
     initial_state = {
         "question": question,
         "intent": intent or "",
@@ -226,7 +233,7 @@ def run_agent(question: str, intent: str = None):
         "docs": [],
         "answer": "",
         "sources": [],
+        "user_id": user_id,
     }
     result = agent_graph.invoke(initial_state)
     return {"answer": result["answer"], "sources": result["sources"]}
-    

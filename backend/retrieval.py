@@ -1,13 +1,14 @@
 # retrieval.py
 import os
-from rag import get_embeddings, VECTOR_DB, COLLECTION_NAME
+from rag import get_embeddings, VECTOR_DB, get_collection_name
 from langchain_chroma import Chroma
 from langfuse import get_client
 
-def retrieve_context(question, k=4, max_distance=1.4, apply_filter=True):
+
+def retrieve_context(question, user_id: str, k=4, max_distance=1.4, apply_filter=True):
     embeddings = get_embeddings()
     db = Chroma(
-        collection_name=COLLECTION_NAME,
+        collection_name=get_collection_name(user_id),
         persist_directory=VECTOR_DB,
         embedding_function=embeddings,
     )
