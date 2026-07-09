@@ -1,40 +1,76 @@
 import { useState } from "react";
 import FileUpload from "./components/FileUpload";
 import ChatBox from "./components/ChatBox";
+import Dashboard from "./components/Dashboard";
 import "./App.css";
+
+type View = "study" | "insights";
 
 function App() {
   const [documentReady, setDocumentReady] = useState(false);
   const [chatResetKey, setChatResetKey] = useState(0);
   const [uploadedFileName, setUploadedFileName] = useState("");
+  const [view, setView] = useState<View>("study");
 
- const handleUploadSuccess = (fileName: string) => {
-  setDocumentReady(true);
-  setUploadedFileName(fileName);
-  setChatResetKey((prev) => prev + 1);
-};
+  const handleUploadSuccess = (fileName: string) => {
+    setDocumentReady(true);
+    setUploadedFileName(fileName);
+    setChatResetKey((prev) => prev + 1);
+  };
+
   return (
-    <div className="app">
-      <div className="container">
-        <header className="header">
-          <h1>EduRAG Assistant</h1>
-          <p>
-            Upload academic PDFs, ask questions, generate summaries, and create quizzes using local RAG.
-          </p>
-        </header>
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="brand-mark">ER</span>
+          <span className="brand-name">EduRAG</span>
+        </div>
 
-        <main className="main-card">
-          <FileUpload onUploadSuccess={handleUploadSuccess} />
+        <nav className="nav">
+          <button
+            className={`nav-item ${view === "study" ? "active" : ""}`}
+            onClick={() => setView("study")}
+          >
+            Study
+          </button>
+          <button
+            className={`nav-item ${view === "insights" ? "active" : ""}`}
+            onClick={() => setView("insights")}
+          >
+            Insights
+          </button>
+        </nav>
 
-          <hr className="divider" />
+        {uploadedFileName && (
+          <div className="sidebar-doc">
+            <span className="sidebar-doc-label">Current document</span>
+            <span className="sidebar-doc-name">{uploadedFileName}</span>
+          </div>
+        )}
+      </aside>
 
-          <ChatBox
-  key={chatResetKey}
-  documentReady={documentReady}
-  uploadedFileName={uploadedFileName}
-/>
-        </main>
-      </div>
+      <main className="content">
+        {view === "study" ? (
+          <>
+            <header className="page-header">
+              <h1>Study your document.</h1>
+              <p>Upload a PDF, then ask, summarize, quiz, or explain.</p>
+            </header>
+
+            <div className="main-card">
+              <FileUpload onUploadSuccess={handleUploadSuccess} />
+              <hr className="divider" />
+              <ChatBox
+                key={chatResetKey}
+                documentReady={documentReady}
+                uploadedFileName={uploadedFileName}
+              />
+            </div>
+          </>
+        ) : (
+          <Dashboard />
+        )}
+      </main>
     </div>
   );
 }
