@@ -10,7 +10,10 @@ from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 
-VECTOR_DB = os.path.join(BASE_DIR, "vector_db")
+# VECTOR_DB = os.path.join(BASE_DIR, "vector_db")
+
+DATA_DIR = os.getenv("DATA_DIR", os.path.dirname(os.path.abspath(__file__)))
+VECTOR_DB = os.path.join(DATA_DIR, "vector_db")
 
 
 def get_embeddings():
