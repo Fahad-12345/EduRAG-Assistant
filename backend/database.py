@@ -1,6 +1,6 @@
 # database.py
 import os
-from sqlalchemy import create_engine, Column, String, DateTime
+from sqlalchemy import create_engine, Column, String, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import declarative_base, sessionmaker
 from datetime import datetime, timezone
 import uuid
@@ -20,6 +20,16 @@ class User(Base):
     email = Column(String, unique=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    filename = Column(String, nullable=False)
+    chunks = Column(Integer, nullable=False)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 Base.metadata.create_all(engine)
