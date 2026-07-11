@@ -4,7 +4,7 @@ from typing import TypedDict, List
 from langgraph.graph import StateGraph, END
 from langchain_groq import ChatGroq
 from retrieval import retrieve_context
-from langfuse import observe, get_client
+from langfuse import observe, get_client, propagate_attributes
 
 llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
@@ -224,16 +224,20 @@ def build_graph():
 agent_graph = build_graph()
 
 
+from langfuse import observe, get_client, propagate_attributes
+
 @observe(name="edurag-agent-run")
 def run_agent(question: str, user_id: str, intent: str = None):
-    initial_state = {
-        "question": question,
-        "intent": intent or "",
-        "context": "",
-        "docs": [],
-        "answer": "",
-        "sources": [],
-        "user_id": user_id,
-    }
-    result = agent_graph.invoke(initial_state)
+    with propagate_attributes(user_id=user_id):
+        initial_state = {
+            "question": question,
+            "intent": intent or "",
+            "context": "",
+            "docs": [],
+            "answer": "",
+            "sources": [],
+            "user_id": user_id,
+        }
+        result = agent_graph.invoke(initial_state)
+
     return {"answer": result["answer"], "sources": result["sources"]}
