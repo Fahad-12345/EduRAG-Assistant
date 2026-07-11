@@ -3,9 +3,9 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 from rag import ingest_pdf
 from graph import run_agent
-from langfuse import observe
+from langfuse import observe, get_client, propagate_attributes
 from fastapi.middleware.cors import CORSMiddleware
-from database import get_db, User
+from database import get_db, User, Document
 from auth import hash_password, verify_password, create_token, get_current_user
 import os
 import httpx
@@ -90,21 +90,30 @@ def me(current_user: User = Depends(get_current_user)):
 async def upload_pdf(
     file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    file_path = os.path.join(UPLOAD_FOLDER, f"{current_user.id}_{file.filename}")
+    with propagate_attributes(user_id=current_user.id):
+        file_path = os.path.join(UPLOAD_FOLDER, f"{current_user.id}_{file.filename}")
 
-    with open(file_path, "wb") as f:
-        f.write(await file.read())
+        with open(file_path, "wb") as f:
+            f.write(await file.read())
 
-    chunks = ingest_pdf(file_path, user_id=current_user.id)
+        chunks = ingest_pdf(file_path, user_id=current_user.id)
+
+        document = Document(
+            user_id=current_user.id,
+            filename=file.filename,
+            chunks=chunks,
+        )
+        db.add(document)
+        db.commit()
 
     return {
         "status": "success",
         "filename": file.filename,
         "chunks": chunks,
     }
-
-
+    
 @app.post("/ask")
 def ask(request: QuestionRequest, current_user: User = Depends(get_current_user)):
     return run_agent(request.question, user_id=current_user.id, intent="qa")
@@ -136,19 +145,19 @@ def agent(request: QuestionRequest, current_user: User = Depends(get_current_use
 
 
 @app.get("/stats")
-def get_stats():
+def get_stats(current_user: User = Depends(get_current_user)):
     try:
         with httpx.Client(auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY), timeout=10) as client:
             questions_resp = client.get(
                 f"{LANGFUSE_HOST}/api/public/traces",
-                params={"name": "edurag-agent-run", "limit": 50},
+                params={"name": "edurag-agent-run", "userId": current_user.id, "limit": 50},
             )
             questions_resp.raise_for_status()
             questions_data = questions_resp.json()
 
             uploads_resp = client.get(
                 f"{LANGFUSE_HOST}/api/public/traces",
-                params={"name": "pdf-upload", "limit": 1},
+                params={"name": "pdf-upload", "userId": current_user.id, "limit": 1},
             )
             uploads_resp.raise_for_status()
             uploads_data = uploads_resp.json()
@@ -168,9 +177,9 @@ def get_stats():
         avg_eval_score = (sum(all_scores) / len(all_scores) * 100) if all_scores else None
 
         stats = [
-            {"label": "Questions Asked", "value": str(total_questions)},
-            {"label": "Avg Response Time", "value": f"{avg_latency:.1f}", "unit": "s"},
-            {"label": "PDFs Uploaded", "value": str(total_uploads)},
+            {"label": "Your Questions Asked", "value": str(total_questions)},
+            {"label": "Your Avg Response Time", "value": f"{avg_latency:.1f}", "unit": "s"},
+            {"label": "Your PDFs Uploaded", "value": str(total_uploads)},
         ]
 
         if avg_eval_score is not None:
@@ -180,3 +189,27 @@ def get_stats():
 
     except Exception as e:
         return {"stats": None, "error": str(e)}
+
+@app.get("/documents")
+def get_documents(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    documents = (
+        db.query(Document)
+        .filter(Document.user_id == current_user.id)
+        .order_by(Document.uploaded_at.desc())
+        .all()
+    )
+
+    return {
+        "documents": [
+            {
+                "filename": d.filename,
+                "chunks": d.chunks,
+                "uploaded_at": d.uploaded_at.isoformat(),
+            }
+            for d in documents
+        ]
+    }
+        
