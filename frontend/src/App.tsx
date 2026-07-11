@@ -2,21 +2,44 @@ import { useState } from "react";
 import FileUpload from "./components/FileUpload";
 import ChatBox from "./components/ChatBox";
 import Dashboard from "./components/Dashboard";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 import "./App.css";
 
 type View = "study" | "insights";
 
-function App() {
-  const [documentReady, setDocumentReady] = useState(false);
+function AppShell() {
+  const { isAuthenticated, email, logout } = useAuth();
+  const [authView, setAuthView] = useState<"login" | "signup">("login");
+  const [documentReady, setDocumentReady] = useState(!!localStorage.getItem("edurag_current_doc"));
   const [chatResetKey, setChatResetKey] = useState(0);
-  const [uploadedFileName, setUploadedFileName] = useState("");
+  const [uploadedFileName, setUploadedFileName] = useState(localStorage.getItem("edurag_current_doc") || "");
   const [view, setView] = useState<View>("study");
 
   const handleUploadSuccess = (fileName: string) => {
     setDocumentReady(true);
     setUploadedFileName(fileName);
     setChatResetKey((prev) => prev + 1);
+    localStorage.setItem("edurag_current_doc", fileName);
   };
+
+  const handleLogout = () => {
+    logout();
+    setDocumentReady(false);
+    setUploadedFileName("");
+    setChatResetKey((prev) => prev + 1);
+    setView("study");
+    localStorage.removeItem("edurag_current_doc");
+  };
+
+  if (!isAuthenticated) {
+    return authView === "login" ? (
+      <Login onSwitchToSignup={() => setAuthView("signup")} />
+    ) : (
+      <Signup onSwitchToLogin={() => setAuthView("login")} />
+    );
+  }
 
   return (
     <div className="app-shell">
@@ -47,6 +70,13 @@ function App() {
             <span className="sidebar-doc-name">{uploadedFileName}</span>
           </div>
         )}
+
+        <div className="sidebar-user">
+          <span className="sidebar-user-email">{email}</span>
+          <button onClick={handleLogout} className="sidebar-logout">
+            Log out
+          </button>
+        </div>
       </aside>
 
       <main className="content">
@@ -72,6 +102,14 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
+    </AuthProvider>
   );
 }
 

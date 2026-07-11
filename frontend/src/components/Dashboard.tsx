@@ -7,30 +7,50 @@ interface StatCard {
   unit?: string;
 }
 
+interface DocumentRecord {
+  filename: string;
+  chunks: number;
+  uploaded_at: string;
+}
+
 function Dashboard() {
   const [stats, setStats] = useState<StatCard[] | null>(null);
+  const [documents, setDocuments] = useState<DocumentRecord[] | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchData = async () => {
       try {
-        const response = await API.get("/stats");
-        setStats(response.data.stats);
+        const [statsRes, docsRes] = await Promise.all([
+          API.get("/stats"),
+          API.get("/documents"),
+        ]);
+        setStats(statsRes.data.stats);
+        setDocuments(docsRes.data.documents);
       } catch {
-        // Backend endpoint not wired yet — fall back to a clear empty state
         setStats(null);
+        setDocuments(null);
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
+    fetchData();
   }, []);
+
+  const formatDate = (iso: string) => {
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
 
   return (
     <>
       <header className="page-header">
         <h1>Insights.</h1>
-        <p>How your document assistant is performing.</p>
+        <p>Your activity in EduRAG.</p>
       </header>
 
       <div className="main-card">
@@ -51,10 +71,25 @@ function Dashboard() {
         ) : (
           <div className="stats-empty">
             <p>Insights aren't connected yet.</p>
-            <p className="empty-text">
-              Wire up a /stats endpoint that pulls latency, eval scores, and usage from Langfuse to see them here.
-            </p>
           </div>
+        )}
+      </div>
+
+      <div className="main-card" style={{ marginTop: 20 }}>
+        <h3 className="section-title">Your documents</h3>
+        {documents && documents.length > 0 ? (
+          <div className="doc-list">
+            {documents.map((doc, i) => (
+              <div className="doc-list-item" key={i}>
+                <span className="doc-list-name">{doc.filename}</span>
+                <span className="doc-list-meta">
+                  {doc.chunks} chunks · {formatDate(doc.uploaded_at)}
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="empty-text">No documents uploaded yet.</p>
         )}
       </div>
     </>
