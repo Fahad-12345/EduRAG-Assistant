@@ -5,7 +5,7 @@ from langchain_chroma import Chroma
 from langfuse import get_client
 
 
-def retrieve_context(question, user_id: str, k=4, max_distance=1.4, apply_filter=True):
+def retrieve_context(question, user_id: str, document_ids: list[str] | None = None, k=4, max_distance=1.4, apply_filter=False):
     embeddings = get_embeddings()
     db = Chroma(
         collection_name=get_collection_name(user_id),
@@ -13,10 +13,15 @@ def retrieve_context(question, user_id: str, k=4, max_distance=1.4, apply_filter
         embedding_function=embeddings,
     )
 
-    results = db.similarity_search_with_score(question, k=k)
+    where_filter = {"document_id": {"$in": document_ids}} if document_ids else None
+
+    results = db.similarity_search_with_score(question, k=k, filter=where_filter)
 
     get_client().update_current_span(
-        metadata={"retrieval_distances": [round(d, 3) for _, d in results]}
+        metadata={
+            "retrieval_distances": [round(d, 3) for _, d in results],
+            "document_scope": document_ids or "all",
+        }
     )
 
     if apply_filter:

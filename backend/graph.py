@@ -83,6 +83,7 @@ class GraphState(TypedDict):
     answer: str
     sources: List[dict]
     user_id: str
+    document_ids: list
 
 
 @observe(name="classify-intent")
@@ -128,27 +129,69 @@ Reply with only the category word, nothing else."""
 
 @observe(name="retrieve-context")
 def retrieve_node(state: GraphState) -> GraphState:
+    document_ids = state.get("document_ids")
+
     if state["intent"] == "qa":
-        result = retrieve_context(state["question"], user_id=state["user_id"], apply_filter=True)
+        result = retrieve_context(
+            state["question"],
+            user_id=state["user_id"],
+            document_ids=document_ids,
+            k=6,
+            apply_filter=False,
+        )
     else:
         # summary/quiz/topics/explain: fetch broadly, no relevance filtering
-        result = retrieve_context(state["intent"], user_id=state["user_id"], k=8, apply_filter=False)
+        result = retrieve_context(
+            state["intent"],
+            user_id=state["user_id"],
+            document_ids=document_ids,
+            k=8,
+            apply_filter=False,
+        )
     state["docs"] = result["docs"]
     state["context"] = result["context"]
     get_client().update_current_span(
-        metadata={"num_docs_retrieved": len(result["docs"])}
+        metadata={
+            "num_docs_retrieved": len(result["docs"]),
+            "document_scope": document_ids or "all",
+        }
     )
     return state
 
 
 def grounding_check(state: GraphState) -> str:
-    """Conditional edge: skip the LLM entirely if retrieval found nothing.
-    This is the hallucination-prevention step."""
     if not state["docs"] or not state["context"].strip():
+        get_client().update_current_span(
+            input=state["question"], output="not_found (no chunks retrieved)"
+        )
         return "not_found"
-    return "generate"
 
+    # Only run the relevance judge for genuine Q&A — summary/quiz/topics/explain
+    # just need retrieved content to exist, not to "answer" a question.
+    if state["intent"] != "qa":
+        return "generate"
 
+    judge_prompt = f"""Question: {state['question']}
+
+Retrieved content:
+{state['context']}
+
+Does the retrieved content contain enough information to answer the question,
+even partially? Reply with only "yes" or "no". If the content is unrelated to
+the question, reply "no"."""
+
+    result = classifier_llm.invoke(judge_prompt).content.strip().lower()
+    decision = "generate" if "yes" in result else "not_found"
+
+    get_client().update_current_span(
+        input=judge_prompt,
+        output=result,
+        metadata={"decision": decision},
+    )
+
+    return decision
+    
+    
 def not_found_node(state: GraphState) -> GraphState:
     state["answer"] = "I could not find this information in the uploaded document."
     state["sources"] = []
@@ -224,10 +267,8 @@ def build_graph():
 agent_graph = build_graph()
 
 
-from langfuse import observe, get_client, propagate_attributes
-
 @observe(name="edurag-agent-run")
-def run_agent(question: str, user_id: str, intent: str = None):
+def run_agent(question: str, user_id: str, intent: str = None, document_ids: list = None):
     with propagate_attributes(user_id=user_id):
         initial_state = {
             "question": question,
@@ -237,6 +278,7 @@ def run_agent(question: str, user_id: str, intent: str = None):
             "answer": "",
             "sources": [],
             "user_id": user_id,
+            "document_ids": document_ids,
         }
         result = agent_graph.invoke(initial_state)
 

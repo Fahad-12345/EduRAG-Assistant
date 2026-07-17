@@ -26,33 +26,32 @@ def get_collection_name(user_id: str) -> str:
     return f"user_{user_id}"
 
 
-def reset_vector_db(user_id: str):
-    embeddings = get_embeddings()
+# def reset_vector_db(user_id: str):
+#     embeddings = get_embeddings()
 
-    db = Chroma(
-        collection_name=get_collection_name(user_id),
-        persist_directory=VECTOR_DB,
-        embedding_function=embeddings,
-    )
+#     db = Chroma(
+#         collection_name=get_collection_name(user_id),
+#         persist_directory=VECTOR_DB,
+#         embedding_function=embeddings,
+#     )
 
-    existing = db.get()
+#     existing = db.get()
 
-    if existing and existing.get("ids"):
-        db.delete(ids=existing["ids"])
+#     if existing and existing.get("ids"):
+#         db.delete(ids=existing["ids"])
 
 
-def ingest_pdf(file_path: str, user_id: str):
-    reset_vector_db(user_id)
-
+def ingest_pdf(file_path: str, user_id: str, document_id: str):
+    """Adds a document's chunks to the user's collection, tagged with document_id.
+    Does NOT wipe existing documents — multiple uploads now coexist."""
     loader = PyPDFLoader(file_path)
     documents = loader.load()
 
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
-        chunk_overlap=200
-    )
-
+    splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
     chunks = splitter.split_documents(documents)
+
+    for chunk in chunks:
+        chunk.metadata["document_id"] = document_id
 
     embeddings = get_embeddings()
 
@@ -64,3 +63,14 @@ def ingest_pdf(file_path: str, user_id: str):
     )
 
     return len(chunks)
+
+
+def delete_document(user_id: str, document_id: str):
+    """Removes all chunks belonging to a specific document from the user's collection."""
+    embeddings = get_embeddings()
+    db = Chroma(
+        collection_name=get_collection_name(user_id),
+        persist_directory=VECTOR_DB,
+        embedding_function=embeddings,
+    )
+    db.delete(where={"document_id": document_id})
