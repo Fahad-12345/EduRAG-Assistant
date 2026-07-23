@@ -2,6 +2,7 @@ import { useState } from "react";
 import FileUpload from "./components/FileUpload";
 import ChatBox from "./components/ChatBox";
 import Dashboard from "./components/Dashboard";
+import DocumentSelector from "./components/DocumentSelector";
 import Login from "./components/Login";
 import Signup from "./components/Signup";
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -12,25 +13,22 @@ type View = "study" | "insights";
 function AppShell() {
   const { isAuthenticated, email, logout } = useAuth();
   const [authView, setAuthView] = useState<"login" | "signup">("login");
-  const [documentReady, setDocumentReady] = useState(!!localStorage.getItem("edurag_current_doc"));
+  const [documentReady, setDocumentReady] = useState(false);
   const [chatResetKey, setChatResetKey] = useState(0);
-  const [uploadedFileName, setUploadedFileName] = useState(localStorage.getItem("edurag_current_doc") || "");
+  const [docListRefreshKey, setDocListRefreshKey] = useState(0);
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [view, setView] = useState<View>("study");
 
-  const handleUploadSuccess = (fileName: string) => {
-    setDocumentReady(true);
-    setUploadedFileName(fileName);
-    setChatResetKey((prev) => prev + 1);
-    localStorage.setItem("edurag_current_doc", fileName);
+  const handleUploadSuccess = () => {
+    setDocListRefreshKey((prev) => prev + 1);
   };
 
   const handleLogout = () => {
     logout();
     setDocumentReady(false);
-    setUploadedFileName("");
     setChatResetKey((prev) => prev + 1);
+    setSelectedDocumentIds([]);
     setView("study");
-    localStorage.removeItem("edurag_current_doc");
   };
 
   if (!isAuthenticated) {
@@ -50,26 +48,13 @@ function AppShell() {
         </div>
 
         <nav className="nav">
-          <button
-            className={`nav-item ${view === "study" ? "active" : ""}`}
-            onClick={() => setView("study")}
-          >
+          <button className={`nav-item ${view === "study" ? "active" : ""}`} onClick={() => setView("study")}>
             Study
           </button>
-          <button
-            className={`nav-item ${view === "insights" ? "active" : ""}`}
-            onClick={() => setView("insights")}
-          >
+          <button className={`nav-item ${view === "insights" ? "active" : ""}`} onClick={() => setView("insights")}>
             Insights
           </button>
         </nav>
-
-        {uploadedFileName && (
-          <div className="sidebar-doc">
-            <span className="sidebar-doc-label">Current document</span>
-            <span className="sidebar-doc-name">{uploadedFileName}</span>
-          </div>
-        )}
 
         <div className="sidebar-user">
           <span className="sidebar-user-email">{email}</span>
@@ -83,17 +68,27 @@ function AppShell() {
         {view === "study" ? (
           <>
             <header className="page-header">
-              <h1>Study your document.</h1>
-              <p>Upload a PDF, then ask, summarize, quiz, or explain.</p>
+              <h1>Study your documents.</h1>
+              <p>Upload PDFs, then ask questions scoped to one, several, or all of them.</p>
             </header>
 
             <div className="main-card">
               <FileUpload onUploadSuccess={handleUploadSuccess} />
+
+              <DocumentSelector
+                refreshKey={docListRefreshKey}
+                selectedIds={selectedDocumentIds}
+                onSelectionChange={setSelectedDocumentIds}
+                onDocumentsLoaded={setDocumentReady}
+              />
+
               <hr className="divider" />
+
               <ChatBox
                 key={chatResetKey}
                 documentReady={documentReady}
-                uploadedFileName={uploadedFileName}
+                uploadedFileName=""
+                selectedDocumentIds={selectedDocumentIds}
               />
             </div>
           </>

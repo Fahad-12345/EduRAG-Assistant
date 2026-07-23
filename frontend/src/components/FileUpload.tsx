@@ -1,11 +1,11 @@
 import { useState } from "react";
 import API from "../services/api";
+
 interface FileUploadProps {
   onUploadSuccess: (fileName: string) => void;
 }
 
 function FileUpload({ onUploadSuccess }: FileUploadProps) {
-
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState("");
@@ -25,6 +25,7 @@ function FileUpload({ onUploadSuccess }: FileUploadProps) {
 
       await API.post("/upload", formData);
       onUploadSuccess(file.name);
+      setFile(null);
 
       setMessage("PDF uploaded and indexed successfully.");
     } catch {
@@ -42,7 +43,7 @@ function FileUpload({ onUploadSuccess }: FileUploadProps) {
         <div>
           <p className="upload-title">PDF Course Material</p>
           <p className="upload-subtitle">
-            Upload lecture notes, assignment briefs, rubrics, or course outlines.
+            Upload lecture notes, assignment briefs, rubrics, or course outlines. You can add multiple documents to your workspace.
           </p>
 
           {file && <p className="file-name">Selected: {file.name}</p>}
