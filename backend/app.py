@@ -197,7 +197,8 @@ def delete_document_route(
 
 
 @app.get("/stats")
-def get_stats(current_user: User = Depends(get_current_user)):
+@app.get("/stats")
+def get_stats(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     try:
         with httpx.Client(auth=(LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY), timeout=10) as client:
             questions_resp = client.get(
@@ -207,16 +208,11 @@ def get_stats(current_user: User = Depends(get_current_user)):
             questions_resp.raise_for_status()
             questions_data = questions_resp.json()
 
-            uploads_resp = client.get(
-                f"{LANGFUSE_HOST}/api/public/traces",
-                params={"name": "pdf-upload", "userId": current_user.id, "limit": 1},
-            )
-            uploads_resp.raise_for_status()
-            uploads_data = uploads_resp.json()
-
         traces = questions_data.get("data", [])
         total_questions = questions_data.get("meta", {}).get("totalItems", len(traces))
-        total_uploads = uploads_data.get("meta", {}).get("totalItems", 0)
+
+        # PDFs Uploaded now reflects the LIVE document count, not historical upload events
+        total_uploads = db.query(Document).filter(Document.user_id == current_user.id).count()
 
         latencies = [t["latency"] for t in traces if t.get("latency") is not None]
         avg_latency = sum(latencies) / len(latencies) if latencies else 0
