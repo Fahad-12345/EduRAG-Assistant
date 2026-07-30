@@ -23,6 +23,16 @@ Users sign up, get their own isolated document workspace, and can upload multipl
 - Verified via cross-document testing: a question scoped to one document 
   correctly refuses when asked against an unrelated document, and correctly 
   answers when scoped to the right one or searched across all
+- Source attribution is scoped to what the answer actually used, not everything 
+  retrieved — the LLM reports which specific sources it drew from, pruning out 
+  chunks from unrelated documents pooled in during "all documents" search. 
+  Verified with 3 simultaneously active documents: a question answerable from 
+  only one correctly cites only that document, with no cross-document source leakage
+- Summarize, Generate Quiz, Key Topics, and Explain Simply are scoped to a 
+  single document at a time and are disabled in the UI when multiple documents 
+  are in scope, since blending unrelated documents into one summary or quiz 
+  produces incoherent results — Ask Question remains fully available across 
+  multiple documents, since retrieval and source-pruning handle that correctly
 - Documents can be individually deleted from the UI, with cascading cleanup 
   across both the vector store and the relational database
 
@@ -43,7 +53,7 @@ Users sign up, get their own isolated document workspace, and can upload multipl
 ### RAG Question Answering
 - Ask questions directly from uploaded PDFs, scoped to one document, several, or all
 - Context-aware, grounded responses
-- Source citation support
+- Source citation support, pruned to only the sources actually used in the answer
 
 <img width="1920" height="1017" alt="Screenshot (411)" src="https://github.com/user-attachments/assets/053bbaf6-06a5-4b58-837f-720e24e6b784" />
 <img width="1920" height="1007" alt="Screenshot (412)" src="https://github.com/user-attachments/assets/98bcf4a5-446a-452a-bf5a-a2357a24df12" />
