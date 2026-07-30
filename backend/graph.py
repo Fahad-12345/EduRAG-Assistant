@@ -29,7 +29,13 @@ Context:
 Question:
 {question}
 
-Answer:""",
+Answer the question first. Then on a new final line, list ONLY the source
+numbers (matching "Source N" labels above) you actually drew from to
+construct your answer, like this:
+USED_SOURCES: 1, 3
+
+If you could not answer the question, write:
+USED_SOURCES: none""",
 
     "summary": """Summarize this uploaded document in clear bullet points.
 Keep it useful for a university student.
@@ -190,8 +196,8 @@ the question, reply "no"."""
     )
 
     return decision
-    
-    
+
+
 def not_found_node(state: GraphState) -> GraphState:
     state["answer"] = "I could not find this information in the uploaded document."
     state["sources"] = []
@@ -204,7 +210,7 @@ def generate_node(state: GraphState) -> GraphState:
     prompt = prompt_template.format(context=state["context"], question=state["question"])
 
     response = llm.invoke(prompt)
-    answer_text = response.content.strip()
+    raw_text = response.content.strip()
 
     not_found_phrases = [
         "i could not find this information in the uploaded document",
@@ -212,13 +218,40 @@ def generate_node(state: GraphState) -> GraphState:
         "not available in the context",
     ]
 
+    # For qa intent, parse and strip the USED_SOURCES line so we know which
+    # specific retrieved chunks the answer actually drew from — this lets us
+    # prune sources shown to the user down to what was really used, instead
+    # of showing every chunk that happened to be retrieved (which can include
+    # irrelevant chunks from other documents when scope is "all documents").
+    used_indices = None
+    answer_text = raw_text
+
+    if state["intent"] == "qa" and "USED_SOURCES:" in raw_text:
+        answer_part, used_part = raw_text.rsplit("USED_SOURCES:", 1)
+        answer_text = answer_part.strip()
+        used_part = used_part.strip().lower()
+
+        if used_part != "none":
+            used_indices = set()
+            for token in used_part.split(","):
+                token = token.strip()
+                if token.isdigit():
+                    used_indices.add(int(token))
+
     if any(p in answer_text.lower() for p in not_found_phrases):
         state["answer"] = answer_text
         state["sources"] = []
         return state
 
     sources = []
-    for doc in state["docs"]:
+    for i, doc in enumerate(state["docs"]):
+        # If we successfully parsed which sources were used (qa intent only),
+        # only include those. Otherwise fall back to all retrieved docs —
+        # this preserves existing behavior for summary/quiz/topics/explain,
+        # which legitimately draw from everything retrieved.
+        if used_indices is not None and (i + 1) not in used_indices:
+            continue
+
         source = doc.metadata.get("source", "Unknown file")
         page = doc.metadata.get("page", "Unknown page")
         item = {"file": os.path.basename(source), "page": page + 1 if isinstance(page, int) else page}
@@ -230,7 +263,10 @@ def generate_node(state: GraphState) -> GraphState:
     get_client().update_current_span(
         input=prompt,
         output=answer_text,
-        metadata={"intent": state["intent"]},
+        metadata={
+            "intent": state["intent"],
+            "used_source_indices": list(used_indices) if used_indices else None,
+        },
     )
     return state
 
