@@ -12,7 +12,7 @@ interface DocumentSelectorProps {
   refreshKey: number;
   selectedIds: string[];
   onSelectionChange: (ids: string[]) => void;
-  onDocumentsLoaded: (hasDocuments: boolean) => void;
+  onDocumentsLoaded: (hasDocuments: boolean, totalCount: number) => void;
 }
 
 function DocumentSelector({ refreshKey, selectedIds, onSelectionChange, onDocumentsLoaded }: DocumentSelectorProps) {
@@ -24,10 +24,10 @@ function DocumentSelector({ refreshKey, selectedIds, onSelectionChange, onDocume
     try {
       const response = await API.get("/documents");
       setDocuments(response.data.documents);
-      onDocumentsLoaded(response.data.documents.length > 0);
+      onDocumentsLoaded(response.data.documents.length > 0, response.data.documents.length);
     } catch {
       setDocuments([]);
-      onDocumentsLoaded(false);
+      onDocumentsLoaded(false, 0);
     } finally {
       setLoading(false);
     }
@@ -48,9 +48,8 @@ function DocumentSelector({ refreshKey, selectedIds, onSelectionChange, onDocume
 
   const selectAll = () => onSelectionChange([]);
 
-  const handleDelete = async (e: React.MouseEvent, id: string) => {
-    e.stopPropagation(); // don't trigger toggleDocument when clicking the × 
-
+ const handleDelete = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     const confirmed = window.confirm("Delete this document? This can't be undone.");
     if (!confirmed) return;
 
@@ -58,7 +57,7 @@ function DocumentSelector({ refreshKey, selectedIds, onSelectionChange, onDocume
       setDeletingId(id);
       await API.delete(`/documents/${id}`);
       onSelectionChange(selectedIds.filter((docId) => docId !== id));
-      await fetchDocuments();
+      await fetchDocuments(); // this now correctly reports the updated count too
     } catch {
       window.alert("Failed to delete document. Please try again.");
     } finally {

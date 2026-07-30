@@ -733,3 +733,12 @@ body {
   color: #b03a3a;
   background: #fbeaea;
 }
+.quick-actions-hint {
+  font-size: 13px;
+  color: #6b6a63;
+  background: #f6f4ef;
+  border: 1px solid #eee9dd;
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: -8px 0 14px;
+}

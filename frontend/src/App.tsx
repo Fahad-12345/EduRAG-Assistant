@@ -18,6 +18,16 @@ function AppShell() {
   const [docListRefreshKey, setDocListRefreshKey] = useState(0);
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
   const [view, setView] = useState<View>("study");
+  const [totalDocumentCount, setTotalDocumentCount] = useState(0);
+
+const handleDocumentsLoaded = (hasDocs: boolean, count: number) => {
+  setDocumentReady(hasDocs);
+  setTotalDocumentCount(count);
+};
+
+const isSingleDocumentScope =
+  selectedDocumentIds.length === 1 ||
+  (selectedDocumentIds.length === 0 && totalDocumentCount === 1);
 
   const handleUploadSuccess = () => {
     setDocListRefreshKey((prev) => prev + 1);
@@ -79,7 +89,7 @@ function AppShell() {
                 refreshKey={docListRefreshKey}
                 selectedIds={selectedDocumentIds}
                 onSelectionChange={setSelectedDocumentIds}
-                onDocumentsLoaded={setDocumentReady}
+                onDocumentsLoaded={handleDocumentsLoaded}
               />
 
               <hr className="divider" />
@@ -89,6 +99,7 @@ function AppShell() {
                 documentReady={documentReady}
                 uploadedFileName=""
                 selectedDocumentIds={selectedDocumentIds}
+                isSingleDocumentScope={isSingleDocumentScope}
               />
             </div>
           </>

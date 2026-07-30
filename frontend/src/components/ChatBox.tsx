@@ -6,6 +6,7 @@ interface ChatBoxProps {
   documentReady: boolean;
   uploadedFileName: string;
   selectedDocumentIds: string[];
+  isSingleDocumentScope: boolean;
 }
 
 interface ChatMessage {
@@ -14,7 +15,7 @@ interface ChatMessage {
   sources: Source[];
 }
 
-function ChatBox({ documentReady, selectedDocumentIds }: ChatBoxProps) {
+function ChatBox({ documentReady, selectedDocumentIds, isSingleDocumentScope }: ChatBoxProps) {
   const [question, setQuestion] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,6 +27,7 @@ function ChatBox({ documentReady, selectedDocumentIds }: ChatBoxProps) {
   }, [messages, loading]);
 
   const documentIdsPayload = selectedDocumentIds.length > 0 ? selectedDocumentIds : null;
+  const quickActionsDisabled = !documentReady || loading || !isSingleDocumentScope;
 
   const copyAnswer = async (answer: string, index: number) => {
     await navigator.clipboard.writeText(answer);
@@ -106,19 +108,25 @@ function ChatBox({ documentReady, selectedDocumentIds }: ChatBoxProps) {
       </div>
 
       <div className="quick-actions">
-        <button onClick={() => runAction("Summarize document", "/summary")} disabled={!documentReady || loading}>
+        <button onClick={() => runAction("Summarize document", "/summary")} disabled={quickActionsDisabled}>
           Summarize
         </button>
-        <button onClick={() => runAction("Generate quiz", "/quiz")} disabled={!documentReady || loading}>
+        <button onClick={() => runAction("Generate quiz", "/quiz")} disabled={quickActionsDisabled}>
           Generate Quiz
         </button>
-        <button onClick={() => runAction("Key Topics", "/topics")} disabled={!documentReady || loading}>
+        <button onClick={() => runAction("Key Topics", "/topics")} disabled={quickActionsDisabled}>
           Key Topics
         </button>
-        <button onClick={() => runAction("Explain Simply", "/explain")} disabled={!documentReady || loading}>
+        <button onClick={() => runAction("Explain Simply", "/explain")} disabled={quickActionsDisabled}>
           Explain Simply
         </button>
       </div>
+
+       {!isSingleDocumentScope && documentReady && (
+        <p className="quick-actions-hint">
+          Select a single document above to use Summarize, Quiz, Topics, or Explain — these work on one document at a time. Ask Question still works across multiple documents.
+        </p>
+      )}
 
       <textarea
         className="question-box"
