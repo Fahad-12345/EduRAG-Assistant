@@ -42,6 +42,7 @@ Users sign up, get their own isolated document workspace, and can upload multipl
 - Vector database indexing, scoped to the authenticated user and tagged per document
 
 <img width="1920" height="979" alt="Screenshot (408)" src="https://github.com/user-attachments/assets/16e238fd-9623-4b7d-9cb0-0f54d6d988e9" />
+<img width="1920" height="872" alt="multi_pdfs" src="https://github.com/user-attachments/assets/3960d9f3-4e32-45d0-ba3a-91ceff4008fc" />
 <img width="1920" height="1017" alt="Screenshot (410)" src="https://github.com/user-attachments/assets/f63d7b1b-3283-4c0a-bfc9-236f1e4f2a3c" />
 
 ### Agentic Routing & Grounding
