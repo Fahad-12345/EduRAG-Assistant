@@ -42,7 +42,6 @@ Users sign up, get their own isolated document workspace, and can upload multipl
 - Vector database indexing, scoped to the authenticated user and tagged per document
 
 <img width="1920" height="979" alt="Screenshot (408)" src="https://github.com/user-attachments/assets/16e238fd-9623-4b7d-9cb0-0f54d6d988e9" />
-<img width="1920" height="872" alt="multi_pdfs" src="https://github.com/user-attachments/assets/3960d9f3-4e32-45d0-ba3a-91ceff4008fc" />
 <img width="1920" height="1017" alt="Screenshot (410)" src="https://github.com/user-attachments/assets/f63d7b1b-3283-4c0a-bfc9-236f1e4f2a3c" />
 
 ### Agentic Routing & Grounding
@@ -57,6 +56,7 @@ Users sign up, get their own isolated document workspace, and can upload multipl
 - Source citation support, pruned to only the sources actually used in the answer
 
 <img width="1920" height="1017" alt="Screenshot (411)" src="https://github.com/user-attachments/assets/053bbaf6-06a5-4b58-837f-720e24e6b784" />
+<img width="1920" height="872" alt="multi_pdfs" src="https://github.com/user-attachments/assets/3960d9f3-4e32-45d0-ba3a-91ceff4008fc" />
 <img width="1920" height="1007" alt="Screenshot (412)" src="https://github.com/user-attachments/assets/98bcf4a5-446a-452a-bf5a-a2357a24df12" />
 
 ### AI Learning Tools
