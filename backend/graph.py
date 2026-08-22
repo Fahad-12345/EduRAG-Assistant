@@ -8,14 +8,15 @@ from langfuse import observe, get_client, propagate_attributes
 
 llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
-    model_name="llama-3.3-70b-versatile"
+    model_name="openai/gpt-oss-120b"   # was: "llama-3.3-70b-versatile"
 )
 
 classifier_llm = ChatGroq(
     api_key=os.getenv("GROQ_API_KEY"),
-    model_name="llama-3.3-70b-versatile",
+    model_name="openai/gpt-oss-120b",  # was: "llama-3.3-70b-versatile"
     temperature=0,
 )
+
 
 PROMPTS = {
     "qa": """You are an AI University Assistant.
