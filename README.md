@@ -56,6 +56,7 @@ Users sign up, get their own isolated document workspace, and can upload multipl
 - Source citation support, pruned to only the sources actually used in the answer
 
 <img width="1920" height="1017" alt="Screenshot (411)" src="https://github.com/user-attachments/assets/053bbaf6-06a5-4b58-837f-720e24e6b784" />
+<img width="1920" height="872" alt="multi_pdfs" src="https://github.com/user-attachments/assets/3960d9f3-4e32-45d0-ba3a-91ceff4008fc" />
 <img width="1920" height="1007" alt="Screenshot (412)" src="https://github.com/user-attachments/assets/98bcf4a5-446a-452a-bf5a-a2357a24df12" />
 
 ### AI Learning Tools
